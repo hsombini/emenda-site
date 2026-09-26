@@ -82,7 +82,7 @@ if (!plan) {
 } else {
   root.append(
     el("span", "pill", t(plan.all ? "p_all" : "p_one")),
-    el("h1", null, t("p_where", { place: plan.place })),
+    el("h1", null, plan.place),
     el("p", "lead", plan.comp > 0 ? t("p_budget_comp", { n: plan.budget, c: plan.comp }) : t("p_budget", { n: plan.budget })),
   );
   for (const o of plan.options) {
