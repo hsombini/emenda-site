@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n-title="p_title">A vacation plan from emenda</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap doc">
+  <header class="top">
+    <a class="logo" href="/">emenda<span>.</span></a>
+  </header>
+  <main id="plan"></main>
+  <div class="btns">
+    <a class="btn" id="open" data-i18n="p_open" hidden>Open in the app</a>
+    <a class="btn alt" data-store data-i18n="p_get">Get it on Google Play</a>
+  </div>
+  <footer style="margin-top:40px">
+    <a href="/privacy" data-i18n="nav_privacy">Privacy</a>
+  </footer>
+</div>
+<script src="/i18n.js"></script>
+<script>
+// Decodes the plan in `#s=<code>` (format: SharedPlan.code in the app,
+// lib/planner/share.dart) and renders it with DOM text nodes only.
+applyI18n();
+
+function decode(code) {
+  try {
+    const b64 = code.replace(/-/g, "+").replace(/_/g, "/");
+    const bin = atob(b64 + "===".slice((b64.length + 3) % 4));
+    const j = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))));
+    const place = j.p, b = j.b, c = j.c ?? 0;
+    if (typeof place !== "string" || !place || place.length > 120) return null;
+    if (!Number.isInteger(b) || !Number.isInteger(c) || b < 0 || c < 0 || b > 999 || c > 999) return null;
+    const blocks = (list) => {
+      if (!Array.isArray(list) || !list.length || list.length > 12) return null;
+      const out = [];
+      for (const x of list) {
+        if (!Array.isArray(x) || x.length !== 3) return null;
+        const [iso, len, used] = x;
+        const m = typeof iso === "string" && /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+        if (!m || !Number.isInteger(len) || !Number.isInteger(used) || len < 1 || len > 731 || used < 0 || used > len) return null;
+        out.push({ start: Date.UTC(+m[1], +m[2] - 1, +m[3]), len, used });
+      }
+      return out;
+    };
+    const all = j.o != null;
+    const raw = all ? j.o : [j.k];
+    if (!Array.isArray(raw) || !raw.length || raw.length > 20) return null;
+    const options = raw.map(blocks);
+    if (options.some((o) => !o)) return null;
+    return { place, budget: b, comp: c, options, all };
+  } catch {
+    return null;
+  }
+}
+
+const DAY = 86400000;
+const fmt = new Intl.DateTimeFormat(LANG === "pt" ? "pt-BR" : LANG, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+const range = (b) => fmt.formatRange(new Date(b.start), new Date(b.start + (b.len - 1) * DAY));
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+const code = (/(?:^|[#?&])s=([\w-]+)/.exec(location.hash) || /(?:^|[?&])s=([\w-]+)/.exec(location.search) || [])[1];
+const plan = code && decode(code);
+const root = document.getElementById("plan");
+
+if (!plan) {
+  root.append(el("h1", null, "emenda"), el("p", "lead", t("p_bad")));
+} else {
+  root.append(
+    el("span", "pill", t(plan.all ? "p_all" : "p_one")),
+    el("h1", null, t("p_where", { place: plan.place })),
+    el("p", "lead", plan.comp > 0 ? t("p_budget_comp", { n: plan.budget, c: plan.comp }) : t("p_budget", { n: plan.budget })),
+  );
+  for (const o of plan.options) {
+    const total = o.reduce((s, b) => s + b.len, 0), used = o.reduce((s, b) => s + b.used, 0);
+    const card = el("section", "card opt");
+    const head = el("div", "head");
+    const left = el("div");
+    left.append(el("div", "dates", o.length === 1 ? range(o[0]) : `${range(o[0])} +${o.length - 1}`));
+    left.append(el("span", "chip", t("p_costs", { n: used })));
+    const badge = el("div", "badge");
+    badge.append(el("b", null, String(total)), el("small", null, t("p_off")));
+    head.append(left, badge);
+    card.append(head);
+    if (o.length > 1) {
+      const ul = el("ul");
+      for (const b of o) ul.append(el("li", null, range(b)));
+      card.append(ul);
+    }
+    root.append(card);
+  }
+  const open = document.getElementById("open");
+  open.href = `emenda://p#s=${code}`;
+  open.hidden = false;
+}
+</script>
+</body>
+</html>

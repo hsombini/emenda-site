@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "tk.indiecompany.emenda.app",
+      "sha256_cert_fingerprints": [
+        "C0:BF:B7:E5:A5:5B:2F:79:4B:79:69:F0:27:56:36:8D:9F:9E:22:00:42:EA:53:E4:E1:2C:AB:4F:24:40:AE:DB",
+        "85:2B:15:EA:51:CF:7E:C2:F6:70:99:F1:59:22:E0:DC:90:9D:E2:0F:93:E4:F8:FB:0D:09:4E:C4:04:36:3C:27"
+      ]
+    }
+  }
+]
